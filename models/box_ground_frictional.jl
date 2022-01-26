@@ -1,4 +1,7 @@
-# Simulation: A 2D box and a flat ground at y = 0
+# This file provides the model of 
+# a 2D box on a flat ground at y = 0 with 2 frictional contacts at its bottom
+# It includes: system properties, hybrid system description, functions for the ODE solver to simulate and animate the system
+
 
 module BoxWorld 
 
@@ -6,6 +9,7 @@ using ForwardDiff
 using Plots
 using LinearAlgebra
 
+### (1) system properties & contact constraints
 
 const g = 9.81
 
@@ -73,7 +77,6 @@ function compute_dA(q, dq)
     dA = reshape(ForwardDiff.jacobian(compute_A, q)*dq, n_contacts, 3)
     return dA
 end
-
 
 # contact tangent jacobian
 function compute_A_tangent(q)
@@ -231,6 +234,9 @@ function contact_tangent_velocity_constraints(x, contactMode)
     return AA_eq, AA_geq, dAA_eq, dAA_geq
 end
 
+### (2) function for simulation
+### (2.1) functions for event-based simulation
+
 function solveEOM(x, contactMode, u_control)
     # contactMode: bool vector, indicates which constraints are active
     q = x[1:3]
@@ -288,8 +294,7 @@ function computeResetMap(x, contactMode)
         dq_p = z[1:3]
         p_hat = z[4:end]
     end
-        
-
+    
     return dq_p, p_hat
 end
 
@@ -442,7 +447,7 @@ function guard_conditions(x, contactMode, u_control)
     return c, dir
 end
 
-### wrapper for ode solver
+### (2.2) wrapper for ode solver
 
 function ode_dynamics!(dx, x, p, t)
     # p from integrator: (contact mode, controller, t_control, h_control, u_control)
@@ -601,8 +606,8 @@ function continuous_dynamics_differentiable(x, u, mode)
     # compute EOM matrices
     N = [0; g; 0]
     C = zeros(3,3)
-    Y = zeros(3)
-    Y .= u
+    # Y = zeros(3)
+    Y = u
     
     blockMat = [M A_f'; A zeros(size(A,1),size(A_f',2))] 
 
@@ -621,7 +626,7 @@ function discrete_dynamics(x, u, mode)
     return xn
 end
 
-### Hybrid system
+### (3) Hybrid system Description
 
 # domain
 # ineqs > 0; eqs = 0
@@ -729,6 +734,8 @@ function jumpmap(x, mode_from, mode_to)
     
     return [x[1:3]; dq_p]
 end
+
+### (4) Animation
 
 function boxshape(q)
     p1 = q[1:2] + R_2D(q[3])*[w/2;h/2]

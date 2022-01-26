@@ -4,7 +4,8 @@ using StaticArrays
 
 greet() = print("Hello World!")
 
-include("foo.jl")
+include("control_utils.jl")
 
+include("mode_utils.jl")
 
 end # module

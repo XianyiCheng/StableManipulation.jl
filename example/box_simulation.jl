@@ -6,9 +6,8 @@ using Convex, SCS
 using JLD
 using StableManipulation
 
+# the model includes: TODO
 include("../models/box_ground_frictional.jl")
-
-println(BoxWorld.w)
 
 function no_controller(x, contactMode)
     return zeros(3)
