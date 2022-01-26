@@ -24,7 +24,7 @@ const modes = [false false ; # both free
 
 const n_contacts = 2
 
-# simulation step size
+# control step size
 const Δt = 0.05
 # tolerance for contacts
 const tol_c = 1e-5

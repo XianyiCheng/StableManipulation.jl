@@ -24,7 +24,7 @@ const modes = [false false ; # both free
 
 const n_contacts = 2
 
-# simulation step size
+# control step size
 const Δt = 0.05
 # tolerance for contacts
 const tol_c = 1e-5
@@ -255,8 +255,9 @@ function ode_dynamics!(dx, x, p, t)
     # p from integrator: (contact mode, controller, t_control, h_control, u_control)
     
     # bound the simulation
-    if any(abs.(x[1:2]).>5) || all(x[1:2].<0)
-        dx .= [x[4:6]; zeros(3)]
+     # bound the simulation
+     if any(abs.(x[1:2]).>5) || all(x[1:2].<0)
+        dx .= zeros(6)
         return
     end
 
@@ -326,7 +327,7 @@ function ode_affect_neg!(integrator, idx)
     # only consider down crossing constraint value(IV comp)
     if dir[idx] < 0
         new_contactMode = compute_IV(x)
-        if (all(new_contactMode .== false))
+        if (all(new_contactMode .==false))
             return
         end
         controller = integrator.p[2]
@@ -419,8 +420,8 @@ function guard_set(x, mode_from, mode_to)
     ineqs = [ineqs; d_ineqs]
     eqs = [eqs; d_eqs]
     
-    cs_mode_to = mode_to[1:n_contacts].== true
-    cs_mode_from = mode_from[1:n_contacts].== true
+    cs_mode_to = mode_to.==true
+    cs_mode_from = mode_from.==true
     
     A_new, dA_new = contact_mode_constraints(x, mode_to)
     
@@ -445,7 +446,7 @@ end
 
 function jumpmap(x, mode_from, mode_to)
 
-    dq_p, _ = computeResetMap(x, contactMode)
+    dq_p, _ = computeResetMap(x, mode_to)
     
     return [x[1:3]; dq_p]
 end
