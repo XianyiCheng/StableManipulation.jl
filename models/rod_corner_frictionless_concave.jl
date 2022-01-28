@@ -27,7 +27,7 @@ const n_contacts = 2
 # control step size
 const Δt = 0.05
 # tolerance for contacts
-const tol_c = 1e-5
+const tol_c = 5e-4
 
 # 2D rotation matrix
 function R_2D(θ)
@@ -36,15 +36,44 @@ function R_2D(θ)
 end
 
 # constraints and contacts 
+# TODO: debug this
+# function compute_a(q)
+#     θ = q[3]
+#     p = R_2D(θ)*[-l/2;0] + q[1:2]
+#     a = [p[1]+max(0,p[2]-tol_c); p[2] + max(0,p[1]-tol_c)] 
+#     return a
+# end
+
 function compute_a(q)
     θ = q[3]
     p = R_2D(θ)*[-l/2;0] + q[1:2]
-    a = [p[1]+max(0,p[2]-tol_c); p[2] + max(0,p[1]-tol_c)] 
+    if p[2] > 0
+        a1 = sqrt(p[1]^2 + p[2]^2)
+    else
+        a1 = p[1]
+    end
+    if p[1] > 0
+        a2 = sqrt(p[1]^2 + p[2]^2)
+    else
+        a2 = p[2]
+    end
+    return [a1;a2]
+end
+
+# constraints and contacts 
+function compute_p(q)
+    θ = q[3]
+    a = R_2D(θ)*[-l/2;0] + q[1:2]
+
     return a
 end
 
+# function compute_A(q)
+#     A = ForwardDiff.jacobian(compute_a, q)
+#     return A
+# end
 function compute_A(q)
-    A = ForwardDiff.jacobian(compute_a, q)
+    A = ForwardDiff.jacobian(compute_p, q)
     return A
 end
 
@@ -115,7 +144,10 @@ function solveEOM(x, contactMode, u_control)
 
     b = [Y-N-C*dq; -dA*dq]
     
-    z = blockMat\b
+    H = [zeros(3,size(blockMat,2)); zeros(size(blockMat,1)-3,3) 1e-6*I]
+    z =(blockMat.+H)\b
+
+    # z = blockMat\b
     
     ddq = z[1:3]
 
@@ -138,7 +170,11 @@ function computeResetMap(x, contactMode)
 
     blockMat = [M A'; A zeros(size(A,1),size(A',2))] 
 
-    z = blockMat\[M*dq; zeros(c)]
+    # z = blockMat\[M*dq; zeros(c)]
+
+    H = [zeros(3,size(blockMat,2)); zeros(size(blockMat,1)-3,3) 1e-6*I]
+    z =(blockMat.+H)\[M*dq; zeros(c)]
+
     dq_p = z[1:3]
     p_hat = z[4:end]
 
@@ -275,6 +311,32 @@ function ode_dynamics!(dx, x, p, t)
         u_control = controller(x, contactMode)
         p[5] .= u_control
     end
+
+    new_contactMode = abs.(compute_a(x[1:3])) .< tol_c
+    # println(new_contactMode)
+    if any((new_contactMode.==false) .& contactMode)
+        # new_contactMode = contactMode .| new_contactMode
+        controller = p[2]
+        p[1] .= reshape(new_contactMode,size(p[1]))
+        u_control = controller(x, new_contactMode)
+        p[5] .= u_control
+        if debug == true
+            println("New mode from geometry: ", new_contactMode)
+            println(x)
+        end
+    end
+
+    if all(new_contactMode) && ~all(new_contactMode .& contactMode)
+        # new_contactMode = contactMode .| new_contactMode
+        controller = p[2]
+        p[1] .= reshape(new_contactMode,size(p[1]))
+        u_control = controller(x, new_contactMode)
+        p[5] .= u_control
+        if debug == true
+            println("New mode from geometry: ", new_contactMode)
+            println(x)
+        end
+    end
     
     ddq, λ = solveEOM(x, contactMode, u_control)
     
@@ -312,6 +374,20 @@ function ode_affect!(integrator, idx)
             println("New mode from FA: ", new_contactMode)
             println(x, u_control)
         end
+    else
+
+        new_contactMode = abs.(compute_a(x[1:3])) .< tol_c
+        # if any(new_contactMode.!=contactMode)
+        #     # new_contactMode = contactMode .| new_contactMode
+        #     controller = integrator.p[2]
+        #     integrator.p[1] .= reshape(new_contactMode,size(integrator.p[1]))
+        #     u_control = controller(x, new_contactMode)
+        #     integrator.p[5] .= u_control
+        #     if debug == true
+        #         println("New mode from geometry: ", new_contactMode)
+        #         println(x)
+        #     end
+        # end
     end
 end
 
