@@ -539,7 +539,7 @@ function animation(x, y, θ, n, fps = 30)
     anim = Plots.Animation()
     for i ∈ 1:n
         px, py = rodshape([x[i],y[i],θ[i]])
-        p = plot([-5,0,0],[0,0,-5], lw = 2, c=:black, xlims=(-3,3), ylims=(-3,3))
+        p = plot([-5,0,0],[0,0,-5], lw = 2, c=:black, xlims=(-1,1), ylims=(-1,1))
         plot!(p, px, py, lw = 3, aspect_ratio=:equal, c=:gray, opacity=.8, legend=false)
         frame(anim, p)
     end
