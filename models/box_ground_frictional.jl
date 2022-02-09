@@ -30,7 +30,7 @@ const modes = [0 0 0 0; # both free
         0 1 0 1;
         1 1 0 0;
         1 1 -1 -1;
-        1 1 1 1]
+        1 1 1 1] # both right-slide
 
 const n_contacts = 2
 
